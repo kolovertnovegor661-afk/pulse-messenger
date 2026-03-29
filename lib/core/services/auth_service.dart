@@ -1,5 +1,4 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
@@ -28,21 +27,7 @@ final currentUserDataProvider = StreamProvider<UserModel?>((ref) {
 
 class AuthService {
   final _auth = FirebaseAuth.instance;
-  final _google = GoogleSignIn();
   final _db = FirebaseFirestore.instance;
-
-  Future<UserCredential?> signInWithGoogle() async {
-    final googleUser = await _google.signIn();
-    if (googleUser == null) return null;
-    final googleAuth = await googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-    final result = await _auth.signInWithCredential(credential);
-    await _createOrUpdateUser(result.user!);
-    return result;
-  }
 
   Future<UserCredential> signUpWithEmail({
     required String email,
@@ -52,26 +37,26 @@ class AuthService {
   }) async {
     final result = await _auth.createUserWithEmailAndPassword(
         email: email, password: password);
-    await _createOrUpdateUser(result.user!,
-        username: username, displayName: displayName);
+    await _createUser(result.user!, username: username, displayName: displayName);
     return result;
   }
 
-  Future<UserCredential> signInWithEmail(
-      {required String email, required String password}) async {
+  Future<UserCredential> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
     return await _auth.signInWithEmailAndPassword(
         email: email, password: password);
   }
 
-  Future<void> _createOrUpdateUser(User user,
-      {String? username, String? displayName}) async {
+  Future<void> _createUser(User user, {String? username, String? displayName}) async {
     final doc = await _db.collection('users').doc(user.uid).get();
     if (!doc.exists) {
       await _db.collection('users').doc(user.uid).set({
         'username': username ?? 'user_${user.uid.substring(0, 8)}',
-        'displayName': displayName ?? user.displayName ?? 'User',
+        'displayName': displayName ?? 'User',
         'email': user.email ?? '',
-        'avatarUrl': user.photoURL,
+        'avatarUrl': null,
         'bio': '',
         'isVerified': false,
         'isAdmin': false,
@@ -96,16 +81,13 @@ class AuthService {
       'isOnline': false,
       'lastSeen': FieldValue.serverTimestamp(),
     });
-    await _google.signOut();
     await _auth.signOut();
   }
 
   Future<bool> isUsernameAvailable(String username) async {
-    final q = await _db
-        .collection('users')
+    final q = await _db.collection('users')
         .where('username', isEqualTo: username.toLowerCase())
-        .limit(1)
-        .get();
+        .limit(1).get();
     return q.docs.isEmpty;
   }
 }
