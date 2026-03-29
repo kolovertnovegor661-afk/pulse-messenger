@@ -30,7 +30,9 @@ jobs:
 
       - name: Generate debug keystore
         run: |
-          keytool -genkey -v -keystore ~/.android/debug.keystore \
+          mkdir -p ~/.android
+          keytool -genkey -v \
+            -keystore ~/.android/debug.keystore \
             -alias androiddebugkey \
             -keyalg RSA -keysize 2048 \
             -validity 10000 \
