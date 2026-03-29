@@ -19,6 +19,5 @@ class DefaultFirebaseOptions {
     messagingSenderId: '129265111480',
     projectId: 'pulse-6e20a',
     storageBucket: 'pulse-6e20a.firebasestorage.app',
-    databaseURL: 'https://pulse-6e20a-default-rtdb.firebaseio.com',
   );
 }
